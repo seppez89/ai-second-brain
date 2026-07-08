@@ -14,6 +14,17 @@ and saved into your own Supabase database. Your AI reads that database as memory
 
 ---
 
+## 🚀 Two ways to do this
+
+**Easy mode (recommended):** don't touch the code — let the AI set it up *for* you.
+Open **Claude Code** (or Codex), paste the prompt in **[SETUP_PROMPT.md](./SETUP_PROMPT.md)**,
+and it walks you through everything, asking only for the keys you personally need
+to grab. This is the way. 👇
+
+**Manual mode:** prefer to do it yourself? Follow the steps below.
+
+---
+
 ## What you'll need (all free, ~10 minutes)
 
 Three accounts and five keys. Grab them in this order.
