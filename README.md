@@ -93,10 +93,18 @@ Windows use Task Scheduler.)
 
 ---
 
-## Connect your AI to the brain
-Any AI tool that can reach the internet or read files can now use this memory.
-The simplest version: point a coding assistant (Claude Code, Codex) at your
-Supabase project, or export the rows into a file it reads at the start of a chat.
+## Connect your AI to the brain — any AI, not just one
+
+This is the whole point: your brain lives in **your** Supabase, not inside one
+AI company's walls. Point whatever you use at it — Claude, Codex, GitHub
+Copilot, ChatGPT, all of them.
+
+**Full instructions, copy-paste ready for each tool → [CONNECT_YOUR_AI.md](./CONNECT_YOUR_AI.md)**
+
+Quick version: run `python3 fetch_context.py` to pull your whole brain into one
+local file any AI can read, or (for tools that can run commands) give them a
+standing instruction to fetch it live from Supabase. The full guide covers
+Claude Code, Codex, and Copilot specifically.
 
 ---
 

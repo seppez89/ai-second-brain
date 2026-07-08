@@ -1,5 +1,7 @@
 .env
 .state.json
+MY_CONTEXT.md
+VIDEO_SCRIPT_TELEPROMPTER.md
 __pycache__/
 *.pyc
 .DS_Store

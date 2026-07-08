@@ -36,6 +36,10 @@ English. Specifically:
 4. Create the .env file with my keys. Never commit it.
 5. Run the bot once and confirm my voice note appears as a row in Supabase.
 6. Set it to keep running so it catches my notes automatically.
+7. Read CONNECT_YOUR_AI.md and set up the AI-agnostic connection for whatever
+   AI tools I actually use — ask me which ones (Claude Code, Codex, GitHub
+   Copilot, ChatGPT, etc.) and wire up the right instructions file(s) so each
+   one reads my Supabase brain automatically, not just this one.
 
 Before you start, briefly tell me what I'll need and how long it'll take.
 ```
