@@ -1,35 +1,56 @@
 # 🧠☁️ Second Brain Starter
 
-Give your AI a memory it never loses — in the cloud, that **you** own, that works
-in every app.
+Give every AI you use **one shared memory** — that reads and writes itself, lives
+in the cloud, and that **you** own.
 
-You send a voice note (or text) to a Telegram bot. It gets transcribed for free
-and saved into your own Supabase database. Your AI reads that database as memory.
-
-**100% free stack:** Telegram + [Groq](https://console.groq.com) (transcription) +
-[Supabase](https://supabase.com) (database).
+When Claude learns something about you, Codex knows it too. When Codex figures
+something out, Claude picks it up. Nothing gets re-explained, and nothing stays
+trapped inside one company's app.
 
 > It's not about the perfect prompt. It's about **context**. Every answer your AI
-> gives is only as good as what it knows about you. This gives it that — permanently.
+> gives is only as good as what it knows about you. This gives it that — once,
+> permanently, everywhere.
+
+**The core stack is free:** [Supabase](https://supabase.com) (your cloud brain) +
+the builder AIs you already use. *(A paid Claude plan is needed for Claude Code
+itself; Supabase is free. The optional voice bot adds Telegram + Groq, also free.)*
 
 ---
 
 ## 🚀 Two ways to do this
 
-**Easy mode (recommended):** don't touch the code — let the AI set it up *for* you.
-Open **Claude Code** (or Codex), paste the prompt in **[SETUP_PROMPT.md](./SETUP_PROMPT.md)**,
-and it walks you through everything, asking only for the keys you personally need
-to grab. This is the way. 👇
+**Easy mode (recommended):** don't touch the code — let the AI wire it up *for*
+you. Open **Claude Code** (or Codex), paste the prompt in
+**[SETUP_PROMPT.md](./SETUP_PROMPT.md)**, and it does everything, asking only for
+the couple of keys you personally need to grab. This is the way. 👇
 
 **Manual mode:** prefer to do it yourself? Follow the steps below.
 
 ---
 
-## What you'll need (all free, ~10 minutes)
+## How it works (the loop)
 
-Three accounts and five keys. Grab them in this order.
+```
+   Claude Code ──write──┐                 ┌──write── Codex
+        │               ▼                 ▼            │
+       read   ┌───────────────────────────────┐     read
+        └──────│   brain/  (local)  <->  Supabase │──────┘
+               └───────────────────────────────┘
+                              ▲
+                              │  (optional) Telegram voice notes drop in here
+```
 
-### 1. Supabase — your cloud brain
+- **`brain/`** — a local folder of plain markdown files. One file = one memory.
+  Your AIs read these before they answer and write new ones as they learn.
+- **Supabase** — the cloud copy you own; the shared hub every tool syncs with.
+- **`sync_brain.py`** — mirrors `brain/` ⇄ Supabase both directions, so a fact
+  one tool writes reaches every other tool.
+
+---
+
+## Setup
+
+### 1. Supabase — your cloud brain (the only account you *need*)
 1. Go to [supabase.com](https://supabase.com) → **Start your project** → sign in with GitHub.
 2. **New project** → name it `second-brain` → generate a password (save it) → pick your closest region → **Create** (wait ~2 min).
 3. Left sidebar → **SQL Editor** → **New query** → paste the contents of [`supabase_setup.sql`](./supabase_setup.sql) → **Run**. ("Success. No rows returned" is correct.)
@@ -38,78 +59,71 @@ Three accounts and five keys. Grab them in this order.
    - **Secret key** → the one starting `sb_secret_...`
      ⚠️ Use the **secret** key, *not* the publishable one — the publishable key can't write.
 
-### 2. Telegram — your voice bot
-1. In Telegram, search **@BotFather** → send `/newbot`.
-2. Give it a name, then a username ending in `bot`.
-3. BotFather sends you a **token** — copy it.
-4. Open your **new bot** and send it any message (say "hi").
-
-### 3. Groq — free voice-to-text
-1. Go to [console.groq.com](https://console.groq.com) → sign up (no card).
-2. **API Keys → Create API Key** → copy it.
-
----
-
-## Wire it up
-
-1. **Install Python** (3.9+) if you don't have it, then install the one dependency:
+### 2. Wire it up
+1. **Install Python** (3.9+) if you don't have it, then the one dependency:
    ```
    pip3 install requests
    ```
-2. Copy `.env.example` to `.env` and paste in your keys:
+2. Copy `.env.example` to `.env` and paste in your two Supabase keys:
    ```
-   TELEGRAM_BOT_TOKEN=...
-   TELEGRAM_CHAT_ID=...        # get this in the next step
-   GROQ_API_KEY=...
    SUPABASE_URL=...
    SUPABASE_KEY=...
    ```
-3. **Get your `TELEGRAM_CHAT_ID`** (10 seconds): after you've messaged your bot,
-   open this link in your browser (paste your bot token in):
+   (The Telegram/Groq lines are only for the optional voice bot — leave them for now.)
+3. Start the two-way sync and leave it running:
    ```
-   https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+   python3 sync_brain.py --loop
    ```
-   Find `"chat":{"id":123456789` — that number is your chat id. Put it in `.env`.
+   It mirrors your local `brain/` folder to Supabase and back every 60 seconds.
+
+### 3. Connect Claude + Codex — read AND write
+This is the whole point. Give each tool a standing instruction to read your
+`brain/` folder before answering and write new memories back into it.
+
+**Full copy-paste instructions for each tool → [CONNECT_YOUR_AI.md](./CONNECT_YOUR_AI.md)**
+
+Quick version: drop a `CLAUDE.md` (for Claude Code) and an `AGENTS.md` (for
+Codex) that say *"read the `brain/` folder as my memory; when you learn a durable
+fact about me, save it there as a new markdown file."* From then on, both tools
+share — and keep growing — the same memory.
 
 ---
 
-## Run it
+## (Optional) Talk to your brain by voice
 
-Test it once:
+Want to add memories just by talking? The included Telegram bot transcribes voice
+notes for free and drops them into your brain. It's a **bonus input**, not the
+core — skip it if you just want the Claude ↔ Codex loop.
+
+<details>
+<summary>Set up the voice bot</summary>
+
+Grab two more free keys:
+
+- **Telegram bot token** — in Telegram, message **@BotFather** → `/newbot` → name
+  it, give it a username ending in `bot` → copy the **token**. Open your new bot
+  and send it any message.
+- **Groq API key** — [console.groq.com](https://console.groq.com) → sign up (no
+  card) → **API Keys → Create API Key** → copy it.
+
+Add all four remaining values to `.env` (`TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`,
+`SUPABASE_URL`, `SUPABASE_KEY`), then get your `TELEGRAM_CHAT_ID`: after messaging
+your bot, open `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` and find
+`"chat":{"id":123456789` — that number goes in `.env`.
+
+Run it:
 ```
-python3 second_brain_bot.py
+python3 second_brain_bot.py            # check once
+python3 second_brain_bot.py --loop     # keep running, checks every 60s
 ```
-Send your bot a voice note, run that again — you'll see `saved: ...`, and the note
-appears as a row in your Supabase table (**Table Editor → brain_files**). 🎉
-
-### Keep it running automatically
-So it catches your notes without you doing anything, leave it looping:
-```
-python3 second_brain_bot.py --loop
-```
-It checks every 60 seconds. Keep that terminal open, or run it on an always-on
-machine / cheap cloud box. (On Mac/Linux you can also schedule it with `cron`; on
-Windows use Task Scheduler.)
-
----
-
-## Connect your AI to the brain — any AI, not just one
-
-This is the whole point: your brain lives in **your** Supabase, not inside one
-AI company's walls. Point whatever you use at it — Claude, Codex, GitHub
-Copilot, ChatGPT, all of them.
-
-**Full instructions, copy-paste ready for each tool → [CONNECT_YOUR_AI.md](./CONNECT_YOUR_AI.md)**
-
-Quick version: run `python3 fetch_context.py` to pull your whole brain into one
-local file any AI can read, or (for tools that can run commands) give them a
-standing instruction to fetch it live from Supabase. The full guide covers
-Claude Code, Codex, and Copilot specifically.
+Send a voice note, and it lands in Supabase → `sync_brain.py` pulls it into
+`brain/` → every AI sees it.
+</details>
 
 ---
 
 ## Safety
-- Your `.env` holds your passwords — it's git-ignored, never share or commit it.
+- Your `.env` holds your keys — it's git-ignored, never share or commit it.
 - Blur your keys if you screen-record.
 
-Built something cool with it? Enjoy your second brain. 🧠
+Enjoy your second brain. 🧠

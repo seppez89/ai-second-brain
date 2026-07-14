@@ -1,98 +1,117 @@
-# 🔌 Connect ANY AI to your brain
+# 🔌 Wire your AIs to the brain — both directions
 
-This is the part that makes it AI-agnostic — not just Claude, not just ChatGPT.
-**Any tool that can read a file or make a web request can use this memory.**
+This is the part that matters most. It's not just "let my AI read some notes."
+It's a **loop**: every AI you use reads the brain before it answers, and writes
+what it learns back into it — so your memory keeps growing no matter which tool
+you happen to be in.
 
-There are two methods. Use whichever fits the tool.
+```
+   Claude Code ──write──┐                 ┌──write── Codex
+        │               ▼                 ▼            │
+       read   ┌───────────────────────────────┐     read
+        └──────│   brain/  (local)  <->  Supabase │──────┘
+               └───────────────────────────────┘
+                              ▲
+                              │  (optional) Telegram voice notes drop in here
+```
+
+The pieces:
+
+- **`brain/`** — a local folder of plain markdown files. This is where your AIs
+  actually read and write. One file = one memory.
+- **`sync_brain.py`** — mirrors `brain/` to your Supabase database and back,
+  newer-wins, every 60 seconds. This is how a fact Claude writes reaches Codex,
+  and how Codex's notes (or a Telegram voice note) reach Claude.
+
+Run the sync on a loop and leave it going:
+
+```
+python3 sync_brain.py --loop
+```
+
+Now set up each tool. There are two ways to give a tool write-back; use whichever
+the tool supports.
 
 ---
 
-## Method 1 — The universal way (works with literally everything)
+## Claude Code
 
-A tiny script pulls everything out of your Supabase brain into one local file,
-`MY_CONTEXT.md`. Then you tell your AI tool — any AI tool — to read that file
-before answering. Since every coding assistant (and every chat tool you can
-paste text into) can read a local file, this always works, no exceptions.
+**Reading** — drop a `CLAUDE.md` in your project root:
 
+```md
+# My second brain
+Before answering anything about me, my work, or my projects, read the markdown
+files in the ./brain folder — that's my personal memory. Treat it as the source
+of truth about me.
+
+When I tell you to remember something, or you learn a durable new fact about me
+or my projects, SAVE it as a new markdown file in ./brain (a short title, then
+the fact). Keep one fact per file. Don't duplicate a fact that's already there —
+update the existing file instead.
 ```
-python3 fetch_context.py
-```
 
-That's it. Run it anytime you want the snapshot refreshed (or leave it running
-on a timer, the same way `second_brain_bot.py` does). Then:
+That already gives you both directions: Claude reads `brain/`, and writes new
+memories into it as files. `sync_brain.py` carries them to the cloud.
 
-- **Claude Code / Cursor / Codex / any coding AI:** tell it once — *"Always read
-  MY_CONTEXT.md before answering questions about me."* It'll remember for the
-  session (make it permanent with Method 2 below).
-- **GitHub Copilot (Chat, no agent mode):** open `MY_CONTEXT.md` in a tab, or
-  paste it into the chat — Copilot reads whatever's open/referenced in your
-  editor.
-- **ChatGPT / any web chat:** paste the contents of `MY_CONTEXT.md` at the start
-  of a conversation, or upload it as a file if the tool supports uploads.
+**The automatic upgrade (best):** Claude Code has its own built-in memory feature
+— when it decides something is worth remembering, it writes a file into its
+project memory directory *on its own*, no instruction needed. Point that
+directory at your `brain/` folder (a one-time symlink) and Claude's native
+memories land straight in your brain with zero reliance on it "remembering to."
+This is the most reliable write-back there is. In Easy Mode the setup prompt does
+this for you; the `CLAUDE.md` above is the universal fallback if you'd rather not
+touch the symlink.
 
 ---
 
-## Method 2 — Live & automatic (for tools that can run commands)
+## Codex
 
-Claude Code, Codex, and Copilot's **agent mode** can all execute commands
-themselves. Instead of a static snapshot, give them a standing instruction to
-pull your brain **fresh, every time**, straight from Supabase — no local file
-needed. This is the "always current" version.
+Codex reads its instructions from `AGENTS.md`. Use `~/.codex/AGENTS.md` to make
+it apply everywhere, or a project-root `AGENTS.md` for just one project:
 
-The raw call every tool uses under the hood is one HTTP GET:
-
-```
-GET {SUPABASE_URL}/rest/v1/brain_files?select=path,content&order=updated_at.desc
-Headers:
-  apikey: {SUPABASE_KEY}
-  Authorization: Bearer {SUPABASE_KEY}
-```
-
-Drop the matching instructions file into your project so each tool picks it up
-automatically:
-
-### Claude Code → `CLAUDE.md` (project root)
 ```md
-# Personal context
-Before answering anything that needs my personal/business context, fetch my
-second brain:
-  curl -s "{SUPABASE_URL}/rest/v1/brain_files?select=path,content" \
-    -H "apikey: {SUPABASE_KEY}" -H "Authorization: Bearer {SUPABASE_KEY}"
-Read the results as context about me.
+# My second brain
+Before answering anything that needs my personal or business context, read the
+markdown files in the brain/ folder of my second-brain project — that's my
+memory. Treat it as authoritative context about me.
+
+When you learn a durable new fact about me or my projects (or I tell you to
+remember something), write it as a new markdown file in that brain/ folder — a
+short title, then the fact, one fact per file. Update the existing file instead
+of duplicating if the fact is already there.
 ```
 
-### Codex → `AGENTS.md` (project root, or `~/.codex/AGENTS.md` for global)
-```md
-# Personal context
-Before answering questions needing my personal/business context, run:
-  curl -s "{SUPABASE_URL}/rest/v1/brain_files?select=path,content" \
-    -H "apikey: {SUPABASE_KEY}" -H "Authorization: Bearer {SUPABASE_KEY}"
-Treat the response as authoritative context about me.
-```
-
-### GitHub Copilot → `.github/copilot-instructions.md` (repo root)
-```md
-# Personal context
-When relevant, fetch my second brain via:
-  curl -s "{SUPABASE_URL}/rest/v1/brain_files?select=path,content" \
-    -H "apikey: {SUPABASE_KEY}" -H "Authorization: Bearer {SUPABASE_KEY}"
-(Requires Copilot's agent mode with terminal access. On plain Copilot Chat,
-use Method 1 instead — it can't make network calls on its own.)
-```
-
-Replace `{SUPABASE_URL}` and `{SUPABASE_KEY}` with your real values from `.env`.
+Codex's write-back is instruction-following (it does it because you told it to,
+not via a built-in memory feature), so it's a little less guaranteed than
+Claude's native path — but it works, and `sync_brain.py` pushes whatever it
+writes up to the cloud for Claude to pick up.
 
 ---
 
-## Which method should you use?
+## The loop in action
 
-| Tool | Recommended method |
-|---|---|
-| Claude Code | Method 2 (`CLAUDE.md`) — live, automatic |
-| Codex | Method 2 (`AGENTS.md`) — live, automatic |
-| Copilot, agent mode | Method 2 (`.github/copilot-instructions.md`) |
-| Copilot, plain chat | Method 1 — open/paste `MY_CONTEXT.md` |
-| ChatGPT / any web chat | Method 1 — paste or upload `MY_CONTEXT.md` |
+1. You're working in **Claude**. It learns your business is now a Pty Ltd. It
+   writes `brain/company-structure.md`.
+2. `sync_brain.py` pushes that file to Supabase within a minute.
+3. Later you open **Codex** on a totally different task. Its sync has pulled the
+   new file down into `brain/`, so when it reads your brain, it already knows
+   you're a Pty Ltd. You never told it.
 
-**The point:** your brain lives in Supabase, not inside any one AI company's
-walls. Point whatever tool you're using at it, and it already knows you.
+That's the whole idea — **one memory, every tool keeping it current for the next
+one.** Because it lives in your own Supabase, it's not locked inside Anthropic's
+walls or OpenAI's. It's yours.
+
+---
+
+## Other tools (quick note)
+
+The same brain works with anything, it just may not write back automatically:
+
+- **GitHub Copilot (agent mode):** `.github/copilot-instructions.md` with the same
+  read/write instruction as Codex above (needs terminal access).
+- **ChatGPT / any web chat:** run `python3 fetch_context.py` to export your whole
+  brain into one file, `MY_CONTEXT.md`, and paste or upload it at the start of a
+  chat. It reads; it won't write back on its own.
+
+But the heart of the system is the Claude + Codex loop above. Get that running
+and your memory takes care of itself.
